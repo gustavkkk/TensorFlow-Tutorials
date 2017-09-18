@@ -7,20 +7,16 @@ data = np.loadtxt('./data.csv', delimiter=',',
 x_data = np.transpose(data[0:2])
 y_data = np.transpose(data[2:])
 
-#########
-# 신경망 모델 구성
-######
-global_step = tf.Variable(0, trainable=False, name='global_step')
+#Remove model directory
+removeHistory()
 
-X = tf.placeholder(tf.float32)
-Y = tf.placeholder(tf.float32)
+
+##Usage of Tensorboard-1.2
+global_step = tf.Variable(0, trainable=False, name='global_step')
 
 with tf.name_scope('layer1'):
     W1 = tf.Variable(tf.random_uniform([2, 10], -1., 1.), name='W1')
     L1 = tf.nn.relu(tf.matmul(X, W1))
-
-    tf.summary.histogram("X", X)
-    tf.summary.histogram("Weights", W1)
 
 with tf.name_scope('layer2'):
     W2 = tf.Variable(tf.random_uniform([10, 20], -1., 1.), name='W2')
@@ -43,41 +39,44 @@ with tf.name_scope('optimizer'):
     train_op = optimizer.minimize(cost, global_step=global_step)
 
     tf.summary.scalar('cost', cost)
+####
+#Save variables for tensorboard
+print("Save variables for tensorboard")
+tf.summary.histogram("X", X)
+tf.summary.histogram("Weights", W1)
+tf.summary.histogram("Weights", W2)
+tf.summary.histogram("Weights", W3)
+tf.summary.histogram("Model", model)
+tf.summary.scalar('cost', cost)
+####    
+with tf.Session() as sess:
+    saver = tf.train.Saver(tf.global_variables())
 
-#########
-# 신경망 모델 학습
-######
-sess = tf.Session()
-saver = tf.train.Saver(tf.global_variables())
-
-ckpt = tf.train.get_checkpoint_state('./model')
-if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
-    saver.restore(sess, ckpt.model_checkpoint_path)
-else:
-    sess.run(tf.global_variables_initializer())
-
-merged = tf.summary.merge_all()
-writer = tf.summary.FileWriter('./logs', sess.graph)
-
-for step in range(100):
-    sess.run(train_op, feed_dict={X: x_data, Y: y_data})
-
-    print('Step: %d, ' % sess.run(global_step),
-          'Cost: %.3f' % sess.run(cost, feed_dict={X: x_data, Y: y_data}))
-
-    summary = sess.run(merged, feed_dict={X: x_data, Y: y_data})
-    writer.add_summary(summary, global_step=sess.run(global_step))
-
-saver.save(sess, './model/dnn.ckpt', global_step=global_step)
-
-#########
-# 결과 확인
-######
-prediction = tf.argmax(model, 1)
-target = tf.argmax(Y, 1)
-print('예측값:', sess.run(prediction, feed_dict={X: x_data}))
-print('실제값:', sess.run(target, feed_dict={Y: y_data}))
-
-is_correct = tf.equal(prediction, target)
-accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
-print('정확도: %.2f' % sess.run(accuracy * 100, feed_dict={X: x_data, Y: y_data}))
+    ckpt = tf.train.get_checkpoint_state('./model')
+    if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
+        saver.restore(sess, ckpt.model_checkpoint_path)
+    else:
+        sess.run(tf.global_variables_initializer())
+    
+    merged = tf.summary.merge_all()
+    writer = tf.summary.FileWriter('./logs', sess.graph)
+    
+    for step in range(100):
+        sess.run(train_op, feed_dict={X: x_data, Y: y_data})
+    
+        print('Step: %d, ' % sess.run(global_step),
+              'Cost: %.3f' % sess.run(cost, feed_dict={X: x_data, Y: y_data}))
+    
+        summary = sess.run(merged, feed_dict={X: x_data, Y: y_data})
+        writer.add_summary(summary, global_step=sess.run(global_step))
+    
+    saver.save(sess, './model/dnn.ckpt', global_step=global_step)
+    
+    prediction = tf.argmax(model, 1)
+    target = tf.argmax(Y, 1)
+    print('predict:', sess.run(prediction, feed_dict={X: x_data}))
+    print('actual:', sess.run(target, feed_dict={Y: y_data}))
+    
+    is_correct = tf.equal(prediction, target)
+    accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+    print('accuracy: %.2f' % sess.run(accuracy * 100, feed_dict={X: x_data, Y: y_data}))
