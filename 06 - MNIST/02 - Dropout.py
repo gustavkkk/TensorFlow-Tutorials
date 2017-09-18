@@ -49,3 +49,19 @@ with tf.Session() as sess:
                             feed_dict={X: mnist.test.images,
                                        Y: mnist.test.labels,
                                        keep_prob: 1}))
+    #Run Model    
+    labels = sess.run(model,
+                      feed_dict={X: mnist.test.images,
+                                 Y: mnist.test.labels,
+                                 keep_prob: 1})
+#Usage of matplot    
+    fig = plt.figure()
+    for i in range(10):
+        subplot = fig.add_subplot(2, 5, i + 1)
+        subplot.set_xticks([])
+        subplot.set_yticks([])
+        subplot.set_title('%d' % np.argmax(labels[i]))
+        subplot.imshow(mnist.test.images[i].reshape((28, 28)),
+                       cmap=plt.cm.gray_r)
+    
+    plt.show()
